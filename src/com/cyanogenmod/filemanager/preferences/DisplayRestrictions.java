@@ -25,8 +25,7 @@ public enum DisplayRestrictions {
      */
     CATEGORY_TYPE_RESTRICTION,
     /**
-     * Restriction for display only files with these mime/types (this restriction
-     * accepts a String or String[] as parameter).
+     * Restriction for display only files with the mime/type.
      */
     MIME_TYPE_RESTRICTION,
     /**

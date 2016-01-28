@@ -287,12 +287,12 @@ public class ActionsDialog implements OnItemClickListener, OnItemLongClickListen
             //- Open
             case R.id.mnu_actions_open:
                 IntentsActionPolicy.openFileSystemObject(
-                        this.mContext, this.mFso, false, null);
+                        this.mContext, this.mFso, false, null, null);
                 break;
             //- Open with
             case R.id.mnu_actions_open_with:
                 IntentsActionPolicy.openFileSystemObject(
-                        this.mContext, this.mFso, true, null);
+                        this.mContext, this.mFso, true, null, null);
                 break;
 
             //- Execute
@@ -303,7 +303,7 @@ public class ActionsDialog implements OnItemClickListener, OnItemLongClickListen
             //- Send
             case R.id.mnu_actions_send:
                 IntentsActionPolicy.sendFileSystemObject(
-                        this.mContext, this.mFso, null);
+                        this.mContext, this.mFso, null, null);
                 break;
             case R.id.mnu_actions_send_selection:
                 if (this.mOnSelectionListener != null) {
@@ -311,10 +311,10 @@ public class ActionsDialog implements OnItemClickListener, OnItemLongClickListen
                             this.mOnSelectionListener.onRequestSelectedFiles();
                     if (selection.size() == 1) {
                         IntentsActionPolicy.sendFileSystemObject(
-                                this.mContext, selection.get(0), null);
+                                this.mContext, selection.get(0), null, null);
                     } else {
                         IntentsActionPolicy.sendMultipleFileSystemObject(
-                                this.mContext, selection, null);
+                                this.mContext, selection, null, null);
                     }
                 }
                 break;
@@ -477,7 +477,7 @@ public class ActionsDialog implements OnItemClickListener, OnItemLongClickListen
         final InputNameDialog inputNameDialog =
                 new InputNameDialog(
                         this.mContext,
-                        this.mOnSelectionListener.onRequestCurrentItems(),
+                        this.mOnSelectionListener.onRequestCurrentDir(),
                         menuItem.getTitle().toString());
         inputNameDialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
             @Override
@@ -519,7 +519,7 @@ public class ActionsDialog implements OnItemClickListener, OnItemLongClickListen
         final InputNameDialog inputNameDialog =
                 new InputNameDialog(
                         this.mContext,
-                        this.mOnSelectionListener.onRequestCurrentItems(),
+                        this.mOnSelectionListener.onRequestCurrentDir(),
                         fso,
                         allowFsoName,
                         menuItem.getTitle().toString());

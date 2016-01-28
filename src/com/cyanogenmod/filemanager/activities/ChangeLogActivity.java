@@ -120,7 +120,7 @@ public class ChangeLogActivity extends Activity implements OnCancelListener, OnD
 
             // Show a dialog
             AlertDialog dialog = DialogHelper.createAlertDialog(
-                this, R.mipmap.ic_launcher_filemanager,
+                this, R.drawable.ic_launcher,
                 R.string.changelog_title, sb.toString(), false);
             dialog.setOnCancelListener(this);
             dialog.setOnDismissListener(this);

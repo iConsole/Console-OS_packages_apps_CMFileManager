@@ -185,12 +185,6 @@ public class SecureStorageKeyPromptDialog
         }
 
         @Override
-        protected void onPause() {
-            super.onPause();
-            mDialog.cancel();
-        }
-
-        @Override
         public void onAttachedToWindow() {
             super.onAttachedToWindow();
 

@@ -23,7 +23,6 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.app.Activity;
 
 import com.cyanogenmod.filemanager.model.DiskUsage;
 import com.cyanogenmod.filemanager.model.MountPoint;
@@ -132,7 +131,7 @@ public class FilesystemAsyncTask extends AsyncTask<String, Integer, Boolean> {
             if (isCancelled()) {
                 return Boolean.TRUE;
             }
-            ((Activity)mContext).runOnUiThread(new Runnable() {
+            this.mMountPointInfo.post(new Runnable() {
                 @Override
                 public void run() {
                     Theme theme = ThemeManager.getCurrentTheme(FilesystemAsyncTask.this.mContext);
@@ -150,7 +149,7 @@ public class FilesystemAsyncTask extends AsyncTask<String, Integer, Boolean> {
             if (isCancelled()) {
                 return Boolean.TRUE;
             }
-            ((Activity)mContext).runOnUiThread(new Runnable() {
+            this.mMountPointInfo.post(new Runnable() {
                 @Override
                 public void run() {
                    String resource =
@@ -174,7 +173,7 @@ public class FilesystemAsyncTask extends AsyncTask<String, Integer, Boolean> {
             if (isCancelled()) {
                 return Boolean.TRUE;
             }
-            ((Activity)mContext).runOnUiThread(new Runnable() {
+            this.mDiskUsageInfo.post(new Runnable() {
                 @Override
                 public void run() {
                     DiskUsage du = null;

@@ -60,11 +60,6 @@ import java.io.File;
     }
 
     @Override
-    public void onClearCache(Object o) {
-        // ignore
-    }
-
-    @Override
     public void onRequestBookmarksRefresh() {
 
     }

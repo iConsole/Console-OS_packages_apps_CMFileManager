@@ -26,13 +26,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.XmlResourceParser;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
-import android.Manifest;
 import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
@@ -329,8 +327,6 @@ public class NavigationActivity extends Activity
                         FileManagerSettings.INTENT_MOUNT_STATUS_CHANGED) == 0 ||
                             intent.getAction().equals(Intent.ACTION_MEDIA_MOUNTED) ||
                             intent.getAction().equals(Intent.ACTION_MEDIA_UNMOUNTED)) {
-                    MountPointHelper.refreshMountPoints(
-                            FileManagerApplication.getBackgroundConsole());
                     onRequestBookmarksRefresh();
                     removeUnmountedHistory();
                     removeUnmountedSelection();
@@ -480,8 +476,6 @@ public class NavigationActivity extends Activity
 
     private boolean mNeedsEasyMode = false;
 
-    private boolean mDisplayingSearchResults;
-
     /**
      * @hide
      */
@@ -494,46 +488,15 @@ public class NavigationActivity extends Activity
 
     private AsyncTask<Void, Void, Boolean> mBookmarksTask;
 
-    private static final int REQUEST_CODE_STORAGE_PERMS = 321;
-    private boolean hasPermissions() {
-        int res = checkCallingOrSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        return (res == PackageManager.PERMISSION_GRANTED);
-    }
-
-    private void requestNecessaryPermissions() {
-        String[] permissions = new String[] {
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        };
-        requestPermissions(permissions, REQUEST_CODE_STORAGE_PERMS);
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            int[] grandResults) {
-        boolean allowed = true;
-        switch (requestCode) {
-            case REQUEST_CODE_STORAGE_PERMS:
-                for (int res : grandResults) {
-                    allowed = allowed && (res == PackageManager.PERMISSION_GRANTED);
-                }
-                break;
-            default:
-                allowed = false;
-                break;
-        }
-        if (allowed) {
-            finishOnCreate();
-            if (mDrawerToggle != null) {
-                mDrawerToggle.syncState();
-            }
-        } else {
-            String text = getResources().getString(R.string.storage_permissions_denied);
-            Toast.makeText(this, text, Toast.LENGTH_LONG).show();
-            finish();
-        }
-    }
+    protected void onCreate(Bundle state) {
 
-    private void finishOnCreate() {
+        if (DEBUG) {
+            Log.d(TAG, "NavigationActivity.onCreate"); //$NON-NLS-1$
+        }
 
         // Register the broadcast receiver
         IntentFilter filter = new IntentFilter();
@@ -543,7 +506,6 @@ public class NavigationActivity extends Activity
         filter.addAction(Intent.ACTION_DATE_CHANGED);
         filter.addAction(Intent.ACTION_TIME_CHANGED);
         filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
-        filter.addAction(Intent.ACTION_LOCALE_CHANGED);
         filter.addAction(FileManagerSettings.INTENT_MOUNT_STATUS_CHANGED);
         registerReceiver(this.mNotificationReceiver, filter);
 
@@ -657,36 +619,20 @@ public class NavigationActivity extends Activity
         EASY_MODE_ICONS.put(MimeTypeCategory.APP, getResources().getDrawable(R.drawable
                 .ic_em_application));
 
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void onCreate(Bundle state) {
-
-        if (DEBUG) {
-            Log.d(TAG, "NavigationActivity.onCreate"); //$NON-NLS-1$
-        }
-
-        if (!hasPermissions()) {
-            requestNecessaryPermissions();
-        } else {
-            finishOnCreate();
-        }
-
         //Save state
         super.onCreate(state);
-
     }
 
     @Override
     protected void onStart() {
         super.onStart();
 
+        if (mSearchView.getVisibility() == View.VISIBLE) {
+            closeSearch();
+        }
+
         // Check restrictions
-        if (!hasPermissions() ||
-                !FileManagerApplication.checkRestrictSecondaryUsersAccess(this, mChRooted)) {
+        if (!FileManagerApplication.checkRestrictSecondaryUsersAccess(this, mChRooted)) {
             return;
         }
 
@@ -695,15 +641,15 @@ public class NavigationActivity extends Activity
         if (curDir != null) {
             VirtualMountPointConsole vc = VirtualMountPointConsole.getVirtualConsoleForPath(
                     mNavigationViews[mCurrentNavigationView].getCurrentDir());
+            getCurrentNavigationView().refresh(true);
             if (vc != null && !vc.isMounted()) {
                 onRequestBookmarksRefresh();
                 removeUnmountedHistory();
                 removeUnmountedSelection();
-            }
 
-            if (mDisplayingSearchResults) {
-                mDisplayingSearchResults = false;
-                closeSearch();
+                Intent intent = new Intent();
+                intent.putExtra(EXTRA_ADD_TO_HISTORY, false);
+                initNavigation(NavigationActivity.this.mCurrentNavigationView, false, intent);
             }
             getCurrentNavigationView().refresh(true);
         }
@@ -713,9 +659,7 @@ public class NavigationActivity extends Activity
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
         // Sync the toggle state after onRestoreInstanceState has occurred.
-        if (mDrawerToggle != null) {
-            mDrawerToggle.syncState();
-        }
+        mDrawerToggle.syncState();
     }
 
     /**
@@ -728,9 +672,7 @@ public class NavigationActivity extends Activity
         final boolean restore = TextUtils.isEmpty(navigateTo);
 
         //Initialize navigation
-        if (!hasPermissions()) {
-            initNavigation(this.mCurrentNavigationView, restore, intent);
-        }
+        initNavigation(this.mCurrentNavigationView, restore, intent);
 
         //Check the intent action
         checkIntent(intent);
@@ -743,9 +685,7 @@ public class NavigationActivity extends Activity
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         onLayoutChanged();
-        if (mDrawerToggle != null ) {
-            mDrawerToggle.onConfigurationChanged(newConfig);
-        }
+        mDrawerToggle.onConfigurationChanged(newConfig);
     }
 
     /**
@@ -837,7 +777,7 @@ public class NavigationActivity extends Activity
             mDrawerLayout.openDrawer(Gravity.START);
 
             AlertDialog dialog = DialogHelper.createAlertDialog(this,
-                    R.mipmap.ic_launcher_filemanager, R.string.welcome_title,
+                    R.drawable.ic_launcher, R.string.welcome_title,
                     getString(R.string.welcome_msg), false);
             DialogHelper.delegateDialogShow(this, dialog);
 
@@ -1126,7 +1066,7 @@ public class NavigationActivity extends Activity
         Drawable action = null;
         String actionCd = null;
         if (bookmark.mType.compareTo(BOOKMARK_TYPE.HOME) == 0) {
-            action = iconholder.getDrawable("ic_edit_home_bookmark_drawable"); //$NON-NLS-1$
+            action = iconholder.getDrawable("ic_config_drawable"); //$NON-NLS-1$
             actionCd = getApplicationContext().getString(
                     R.string.bookmarks_button_config_cd);
         }
@@ -1638,16 +1578,14 @@ public class NavigationActivity extends Activity
      * @hide
      */
     void initNavigation(final int viewId, final boolean restore, final Intent intent) {
-        if (mDisplayingSearchResults || restore) {
-            return;
-        }
-
         final NavigationView navigationView = getNavigationView(viewId);
         this.mHandler.post(new Runnable() {
             @Override
             public void run() {
                 //Is necessary navigate?
-                applyInitialDir(navigationView, intent);
+                if (!restore) {
+                    applyInitialDir(navigationView, intent);
+                }
             }
         });
     }
@@ -1670,25 +1608,14 @@ public class NavigationActivity extends Activity
         // Check if request navigation to directory (use as default), and
         // ensure chrooted and absolute path
         String navigateTo = intent.getStringExtra(EXTRA_NAVIGATE_TO);
-        String intentAction = intent.getAction();
         if (navigateTo != null && navigateTo.length() > 0) {
             initialDir = navigateTo;
-        } else if (intentAction != null && intentAction.equals(Intent.ACTION_VIEW)) {
-            Uri data = intent.getData();
-            if (data != null && (FileHelper.FILE_URI_SCHEME.equals(data.getScheme())
-                    || FileHelper.FOLDER_URI_SCHEME.equals(data.getScheme())
-                    || FileHelper.DIRECTORY_URI_SCHEME.equals(data.getScheme()))) {
-                File path = new File(data.getPath());
-                if (path.isDirectory()) {
-                    initialDir = path.getAbsolutePath();
-                }
-            }
         }
 
         // Add to history
         final boolean addToHistory = intent.getBooleanExtra(EXTRA_ADD_TO_HISTORY, true);
 
-        // We cannot navigate to a secure console if it is unmounted. So go to root in that case
+        // We cannot navigate to a secure console if is unmount, go to root in that case
         VirtualConsole vc = VirtualMountPointConsole.getVirtualConsoleForPath(initialDir);
         if (vc != null && vc instanceof SecureConsole && !((SecureConsole) vc).isMounted()) {
             initialDir = FileHelper.ROOT_DIRECTORY;
@@ -1701,14 +1628,6 @@ public class NavigationActivity extends Activity
                         StorageHelper.getStorageVolumes(this, false);
                 if (volumes != null && volumes.length > 0) {
                     initialDir = volumes[0].getPath();
-                    int count = volumes.length;
-                    for (int i = 0; i < count; i++) {
-                        StorageVolume volume = volumes[i];
-                        if (Environment.MEDIA_MOUNTED.equalsIgnoreCase(volume.getState())) {
-                            initialDir = volume.getPath();
-                            break;
-                        }
-                    }
                     //Ensure that initial directory is an absolute directory
                     initialDir = FileHelper.getAbsPath(initialDir);
                 } else {
@@ -1864,12 +1783,12 @@ public class NavigationActivity extends Activity
 
     @Override
     public void onBackPressed() {
-        if (mDrawerLayout != null && mDrawerLayout.isDrawerOpen(Gravity.START)) {
+        if (mDrawerLayout.isDrawerOpen(Gravity.START)) {
             mDrawerLayout.closeDrawer(Gravity.START);
             return;
         }
 
-        boolean upToParent = mHistory != null && mHistory.size() > 0;
+        boolean upToParent = mHistory.size() > 0;
 
         if (mNeedsEasyMode && !isEasyModeVisible() && !upToParent) {
             performShowEasyMode();
@@ -1998,7 +1917,6 @@ public class NavigationActivity extends Activity
                                 //Goto to new directory
                                 getCurrentNavigationView().open(fso, searchInfo);
                                 performHideEasyMode();
-                                mDisplayingSearchResults = true;
                             }
                         }
                     } else if (resultCode == RESULT_CANCELED) {
@@ -2057,11 +1975,6 @@ public class NavigationActivity extends Activity
         if (clearSelection) {
             this.getCurrentNavigationView().onDeselectAll();
         }
-    }
-
-    @Override
-    public void onClearCache(Object o) {
-        getCurrentNavigationView().onClearCache(o);
     }
 
     /**
@@ -2615,11 +2528,9 @@ public class NavigationActivity extends Activity
 
     private void recycle() {
         // Recycle the navigation views
-        if (mNavigationViews != null) {
-            int cc = this.mNavigationViews.length;
-            for (int i = 0; i < cc; i++) {
-                this.mNavigationViews[i].recycle();
-            }
+        int cc = this.mNavigationViews.length;
+        for (int i = 0; i < cc; i++) {
+            this.mNavigationViews[i].recycle();
         }
         try {
             FileManagerApplication.destroyBackgroundConsole();

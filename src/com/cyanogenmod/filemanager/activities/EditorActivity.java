@@ -26,6 +26,7 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -191,7 +192,8 @@ public class EditorActivity extends Activity implements TextWatcher {
                                 });
                             }
 
-                        } else if (key.compareTo(FileManagerSettings.SETTINGS_EDITOR_SH_COLOR_SCHEME.getId()) == 0 ) {
+                        } else if (key.compareTo(FileManagerSettings.SETTINGS_EDITOR_SH_USE_THEME_DEFAULT.getId()) == 0 ||
+                                   key.compareTo(FileManagerSettings.SETTINGS_EDITOR_SH_COLOR_SCHEME.getId()) == 0 ) {
                             // Ignore in binary files
                             if (activity.mBinary) return;
 
@@ -434,6 +436,11 @@ public class EditorActivity extends Activity implements TextWatcher {
         public int getColor(String id, String resid, int def) {
             final Context ctx = EditorActivity.this;
             try {
+                // Is default theme color scheme enabled?
+                if (isDefaultThemeColorScheme()) {
+                    return ThemeManager.getCurrentTheme(ctx).getColor(ctx, resid);
+                }
+
                 // Use the user-defined settings
                 int[] colors = getUserColorScheme();
                 HighlightColors[] schemeColors = HighlightColors.values();
@@ -456,6 +463,20 @@ public class EditorActivity extends Activity implements TextWatcher {
                 // Resource not found
             }
             return def;
+        }
+
+        /**
+         * Method that returns if we should return the default theme color scheme or not
+         *
+         * @return boolean Whether return the default theme color scheme or not
+         */
+        private boolean isDefaultThemeColorScheme() {
+            Boolean defaultValue =
+                    (Boolean)FileManagerSettings.
+                                SETTINGS_EDITOR_SH_USE_THEME_DEFAULT.getDefaultValue();
+            return Preferences.getSharedPreferences().getBoolean(
+                        FileManagerSettings.SETTINGS_EDITOR_SH_USE_THEME_DEFAULT.getId(),
+                        defaultValue.booleanValue());
         }
 
         /**
@@ -913,7 +934,14 @@ public class EditorActivity extends Activity implements TextWatcher {
                         toggleNoSuggestions();
                         break;
                     case R.id.mnu_word_wrap:
-                        toggleWordWrap();
+                        DialogHelper.showToast(EditorActivity.this,
+                                R.string.toggle_word_wrap_msg, Toast.LENGTH_SHORT);
+                        mHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                toggleWordWrap();
+                            }
+                        }, 50);
                         break;
                     case R.id.mnu_syntax_highlight:
                         toggleSyntaxHighlight();
@@ -1004,7 +1032,6 @@ public class EditorActivity extends Activity implements TextWatcher {
         Intent fileIntent = getIntent();
         if (fileIntent.getData().getScheme().equals("content")) {
             asyncReadContentURI(fileIntent.getData());
-            this.mTitle.setText(fileIntent.getDataString());
         } else {
             // File Scheme URI's
             String path = uriToPath(this, getIntent().getData());

@@ -21,6 +21,7 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -115,6 +116,11 @@ public class PickerActivity extends Activity
     // String extra for folder selection
     private static final String EXTRA_FOLDER_PATH = "def_file_manager_result_dir";
 
+    // Scheme for file and directory picking
+    private static final String FILE_URI_SCHEME = "file"; //$NON-NLS-1$
+    private static final String FOLDER_URI_SCHEME = "folder"; //$NON-NLS-1$
+    private static final String DIRECTORY_URI_SCHEME = "directory"; //$NON-NLS-1$
+
     FileSystemObject mFso;  // The picked item
     FileSystemObject mCurrentDirectory;
     private AlertDialog mDialog;
@@ -203,7 +209,6 @@ public class PickerActivity extends Activity
         }
 
         // Display restrictions
-        Bundle extras = getIntent().getExtras();
         Map<DisplayRestrictions, Object> restrictions = new HashMap<DisplayRestrictions, Object>();
         //- Mime/Type restriction
         String mimeType = getIntent().getType();
@@ -216,13 +221,9 @@ public class PickerActivity extends Activity
                 mimeType = MimeTypeHelper.ALL_MIME_TYPES;
             }
             restrictions.put(DisplayRestrictions.MIME_TYPE_RESTRICTION, mimeType);
-        } else {
-            String[] mimeTypes = getIntent().getStringArrayExtra(Intent.EXTRA_MIME_TYPES);
-            if (mimeTypes != null && mimeTypes.length > 0) {
-                restrictions.put(DisplayRestrictions.MIME_TYPE_RESTRICTION, mimeTypes);
-            }
         }
         // Other restrictions
+        Bundle extras = getIntent().getExtras();
         Log.d(TAG, "PickerActivity. extras: " + String.valueOf(extras)); //$NON-NLS-1$
         if (extras != null) {
             //-- File size
@@ -281,7 +282,7 @@ public class PickerActivity extends Activity
 
         // Create the dialog
         this.mDialog = DialogHelper.createDialog(
-            this, R.mipmap.ic_launcher_filemanager,
+            this, R.drawable.ic_launcher,
             pickingDirectory ? R.string.directory_picker_title : R.string.picker_title,
             this.mRootView);
 
@@ -465,7 +466,7 @@ public class PickerActivity extends Activity
         }
         if (Intent.ACTION_PICK.equals(action)) {
             final Uri data = intent.getData();
-            if (data != null && FileHelper.FILE_URI_SCHEME.equals(data.getScheme())) {
+            if (data != null && FILE_URI_SCHEME.equals(data.getScheme())) {
                 return true;
             }
         }
@@ -480,8 +481,7 @@ public class PickerActivity extends Activity
 
         if (Intent.ACTION_PICK.equals(intent.getAction()) && intent.getData() != null) {
             String scheme = intent.getData().getScheme();
-            if (FileHelper.FOLDER_URI_SCHEME.equals(scheme)
-                    || FileHelper.DIRECTORY_URI_SCHEME.equals(scheme)) {
+            if (FOLDER_URI_SCHEME.equals(scheme) || DIRECTORY_URI_SCHEME.equals(scheme)) {
                 return true;
             }
         }

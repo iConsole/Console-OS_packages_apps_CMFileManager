@@ -271,17 +271,11 @@ public final class PrintActionPolicy extends ActionsPolicy {
             int rowsPerPage = rowsPerPage(pageContentRect);
             adjustLines(pageContentRect, charsPerRow);
 
-            String name = String.valueOf(System.currentTimeMillis());
-            long size = 0;
-            if (mDocument != null) {
-                name = mDocument.getName();
-                size = mDocument.getSize();
-            }
-            PrintDocumentInfo info = new PrintDocumentInfo.Builder(name)
+            PrintDocumentInfo info = new PrintDocumentInfo.Builder(mDocument.getName())
                 .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
                 .setPageCount(calculatePageCount(rowsPerPage))
                 .build();
-            info.setDataSize(size);
+            info.setDataSize(mDocument.getSize());
             boolean changed = !newAttributes.equals(oldAttributes);
             callback.onLayoutFinished(info, changed);
         }
@@ -314,11 +308,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
 
         private void printHeader(Context ctx, Page page, Rect pageContentRect,
                 int charsPerRow) {
-            String name = String.valueOf(System.currentTimeMillis());
-            if (mDocument != null) {
-                name = mDocument.getName();
-            }
-            String header = ctx.getString(R.string.print_document_header, name);
+            String header = ctx.getString(R.string.print_document_header, mDocument.getName());
             if (header.length() >= charsPerRow) {
                 header = header.substring(header.length() - 3) + "...";
             }
@@ -361,8 +351,8 @@ public final class PrintActionPolicy extends ActionsPolicy {
         }
 
         private int calculatePageCount(int rowsPerPage) {
-            double pages = (double) mAdjustedLines.size() / rowsPerPage;
-            return pages <= 0 ? PrintDocumentInfo.PAGE_COUNT_UNKNOWN : (int) Math.ceil(pages);
+            int pages = mAdjustedLines.size() / rowsPerPage;
+            return pages <= 0 ? PrintDocumentInfo.PAGE_COUNT_UNKNOWN : pages;
         }
 
         private int rowsPerPage(Rect pageContentRect) {
@@ -418,11 +408,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
                 return 1;
             }
         };
-        String name = String.valueOf(System.currentTimeMillis());
-        if (document != null) {
-            name = document.getName();
-        }
-        printManager.print(name, new DocumentAdapter(ctx, document, reader), attr);
+        printManager.print(document.getName(), new DocumentAdapter(ctx, document, reader), attr);
     }
 
     /**
@@ -465,11 +451,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
                 return mDocumentMode;
             }
         };
-        String name = String.valueOf(System.currentTimeMillis());
-        if (document != null) {
-            name = document.getName();
-        }
-        printManager.print(name, new DocumentAdapter(ctx, document, reader), attr);
+        printManager.print(document.getName(), new DocumentAdapter(ctx, document, reader), attr);
     }
 
     /**
@@ -485,12 +467,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
                 .setMediaSize(mediaSize)
                 .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                 .build();
-
-        String name = String.valueOf(System.currentTimeMillis());
-        if (document != null) {
-            name = document.getName();
-        }
-        printManager.print(name, new PrintDocumentAdapter() {
+        printManager.print(document.getName(), new PrintDocumentAdapter() {
             @Override
             public void onWrite(PageRange[] pages, ParcelFileDescriptor destination,
                     CancellationSignal cancellationSignal, WriteResultCallback callback) {
@@ -562,11 +539,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
                     return;
                 }
 
-                String name = String.valueOf(System.currentTimeMillis());
-                if (document != null) {
-                    name = document.getName();
-                }
-                PrintDocumentInfo info = new PrintDocumentInfo.Builder(name)
+                PrintDocumentInfo info = new PrintDocumentInfo.Builder(document.getName())
                     .setContentType(PrintDocumentInfo.CONTENT_TYPE_DOCUMENT)
                     .build();
                 boolean changed = !newAttributes.equals(oldAttributes);
@@ -640,12 +613,7 @@ public final class PrintActionPolicy extends ActionsPolicy {
                 .setMediaSize(mediaSize)
                 .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
                 .build();
-
-        String name = String.valueOf(System.currentTimeMillis());
-        if (image != null) {
-            name = image.getName();
-        }
-        printManager.print(name, new PrintDocumentAdapter() {
+        printManager.print(image.getName(), new PrintDocumentAdapter() {
             private PrintAttributes mAttributes;
 
             @Override
@@ -699,11 +667,8 @@ public final class PrintActionPolicy extends ActionsPolicy {
                     return;
                 }
                 mAttributes = newAttributes;
-                String name = String.valueOf(System.currentTimeMillis());
-                if (image != null) {
-                    name = image.getName();
-                }
-                PrintDocumentInfo info = new PrintDocumentInfo.Builder(name)
+
+                PrintDocumentInfo info = new PrintDocumentInfo.Builder(image.getName())
                     .setContentType(PrintDocumentInfo.CONTENT_TYPE_PHOTO)
                     .setPageCount(1)
                     .build();

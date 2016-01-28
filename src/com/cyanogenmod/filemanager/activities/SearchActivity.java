@@ -254,6 +254,8 @@ public class SearchActivity extends Activity
                             mMimeTypeSpinner.setVisibility(View.VISIBLE);
                         }
                     } catch (Throwable ex) {
+                        // hide the search progress spinner if the search fails
+                        mStreamingSearchProgress.setVisibility(View.INVISIBLE);
                         Log.e(TAG, "onAsyncEnd method fails", ex); //$NON-NLS-1$
                     }
                 }
@@ -644,7 +646,7 @@ public class SearchActivity extends Activity
         if (!TextUtils.isEmpty(searchDirectory)) {
             this.mSearchDirectory = searchDirectory;
         }
-        setFoundItems(0, mSearchDirectory);
+
         //Retrieve the query ¿from voice recognizer?
         boolean voiceQuery = true;
         List<String> userQueries =
@@ -1264,11 +1266,6 @@ public class SearchActivity extends Activity
         }
     }
 
-    @Override
-    public void onClearCache(Object o) {
-        // ignore
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -1402,7 +1399,7 @@ public class SearchActivity extends Activity
 
             // Open the file here, so when focus back to the app, the search activity
             // its in top of the stack
-            IntentsActionPolicy.openFileSystemObject(this, fso, false, null);
+            IntentsActionPolicy.openFileSystemObject(this, fso, false, null, null);
         } else {
             // The fso not exists, delete the fso from the search
             try {
